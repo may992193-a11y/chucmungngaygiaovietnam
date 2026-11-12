@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://may992193-a11y.github.io/chucmungngaygiaovietnam/sitemap.xml
