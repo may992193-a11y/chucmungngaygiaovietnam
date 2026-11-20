@@ -354,6 +354,36 @@
     .nut-nhac.dang-phat .gach { opacity: 0; }
     @keyframes xoay { to { transform: rotate(360deg); } }
 
+    .bang-nhac, .nut-goi-y-nhac { --bn-z: 150; --bn-nen: #fffaf2; --bn-chu: #3b2a24; --bn-nhan: #7a1c2b; --bn-nut-chu: #fff8ec; --bn-vien: rgba(212, 167, 60, .5); --bn-mo: rgba(212, 167, 60, .12); }
+    /* Nút & bảng gợi ý nhạc */
+    .nut-goi-y-nhac {
+      position: fixed; right: 76px; bottom: calc(22px + env(safe-area-inset-bottom)); z-index: var(--bn-z);
+      padding: 8px 14px; border-radius: 999px; font-size: .88rem; font-weight: 600;
+      color: var(--bn-nhan); background: var(--bn-nen); border: 1.5px solid var(--bn-vien);
+      box-shadow: 0 8px 20px -8px rgba(0, 0, 0, .45);
+    }
+    .bang-nhac {
+      position: fixed; right: 16px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: calc(var(--bn-z) + 1);
+      width: min(350px, calc(100% - 32px)); max-height: min(70vh, 560px); overflow-y: auto;
+      padding: 16px; border-radius: 18px; color: var(--bn-chu); background: var(--bn-nen);
+      border: 1px solid var(--bn-vien); box-shadow: 0 24px 50px -16px rgba(0, 0, 0, .55);
+      animation: bnHien .3s ease-out both; text-align: left;
+    }
+    @keyframes bnHien { from { opacity: 0; transform: translateY(12px); } }
+    .bn-dau { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--bn-nhan); }
+    .bn-dong { width: 32px; height: 32px; border: 0; border-radius: 50%; font-size: 1.3rem; line-height: 1; color: var(--bn-chu); background: var(--bn-mo); }
+    .bn-hop { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: var(--bn-mo); }
+    .bn-hop div { flex: 1; min-width: 0; }
+    .bn-hop b { display: block; color: var(--bn-nhan); }
+    .bn-hop small, .bn-ds small { display: block; font-size: .78rem; opacity: .75; line-height: 1.4; }
+    .bn-phat { flex: none; padding: 8px 14px; border: 0; border-radius: 999px; font-size: .85rem; font-weight: 600; color: var(--bn-nut-chu); background: var(--bn-nhan); }
+    .bn-nhom { margin: 14px 0 6px; font-size: .78rem; font-weight: 600; text-transform: uppercase; opacity: .7; }
+    .bn-ds { list-style: none; }
+    .bn-ds li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--bn-vien); }
+    .bn-ds li div { flex: 1; min-width: 0; }
+    .bn-ds a { flex: none; font-size: .8rem; font-weight: 600; color: var(--bn-nhan); text-decoration: none; white-space: nowrap; }
+    .bn-ghi { margin-top: 12px; font-size: .78rem; opacity: .75; line-height: 1.45; }
+
     .thong-bao {
       position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 300;
       max-width: calc(100% - 32px); padding: 11px 18px; border-radius: 12px;
@@ -581,6 +611,18 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path class="gach" d="M3 3l18 18"/></svg>
   </button>
   <audio id="nhacNen" loop preload="none"></audio>
+  <!-- Gợi ý nhạc chúc mừng thầy cô -->
+  <button type="button" class="nut-goi-y-nhac" id="nutGoiYNhac" aria-expanded="false" aria-controls="bangNhac">🎵 Gợi ý nhạc</button>
+  <div class="bang-nhac" id="bangNhac" role="dialog" aria-label="Gợi ý nhạc chúc mừng thầy cô" hidden>
+    <div class="bn-dau"><b>🎵 Nhạc chúc mừng thầy cô</b><button type="button" class="bn-dong" id="dongBangNhac" aria-label="Đóng">×</button></div>
+    <div class="bn-hop">
+      <div><b>Hộp nhạc tri ân</b><small>Giai điệu nhẹ nhàng có sẵn – phát ngay trên trang, không cần tải gì thêm</small></div>
+      <button type="button" class="bn-phat" id="nutHopNhac">▶ Phát</button>
+    </div>
+    <p class="bn-nhom">Bài hát hay về thầy cô · nghe trên YouTube</p>
+    <ul class="bn-ds" id="dsNhac"></ul>
+    <p class="bn-ghi">📱 iPhone: nếu không nghe thấy tiếng, hãy gạt tắt chế độ im lặng ở cạnh máy.</p>
+  </div>
 
   <div class="thong-bao" id="thongBao" role="status" aria-live="polite"></div>
 
@@ -590,7 +632,7 @@
   /* =====================================================================
      CẤU HÌNH
      ===================================================================== */
-  // 👉 Điền đường dẫn file nhạc nền vào đây (VD: 'nhac/bui-phan.mp3'). Để trống = chưa có nhạc.
+  // 👉 (Không bắt buộc) Đường dẫn file nhạc riêng, VD: 'nhac/bai-hat.mp3'. Để trống = dùng "Hộp nhạc tri ân" có sẵn.
   const DUONG_DAN_NHAC = '';
 
   // Danh sách mẫu thiệp hợp lệ
@@ -1005,23 +1047,153 @@
   });
 
   /* =====================================================================
-     8. NHẠC NỀN (mặc định tắt)
+     8. NHẠC NỀN & GỢI Ý NHẠC (mặc định tắt)
+     – "Hộp nhạc tri ân": giai điệu tự soạn, phát bằng Web Audio → không cần file nhạc
+     – Nếu điền DUONG_DAN_NHAC thì ưu tiên phát file nhạc của bạn
      ===================================================================== */
-  const nhac = $('#nhacNen');
-  const nutNhac = $('#nutNhac');
-  function datTrangThaiNhac(dangPhat) {
-    nutNhac.classList.toggle('dang-phat', dangPhat);
-    nutNhac.setAttribute('aria-pressed', dangPhat);
-  }
-  nutNhac.addEventListener('click', () => {
-    if (!DUONG_DAN_NHAC) { thongBao('🎵 Chưa có nhạc nền – hãy điền DUONG_DAN_NHAC trong index.html'); return; }
-    if (!nhac.getAttribute('src')) nhac.src = DUONG_DAN_NHAC;
-    if (nhac.paused) {
-      nhac.play().then(() => datTrangThaiNhac(true)).catch(() => thongBao('Không phát được nhạc, hãy kiểm tra đường dẫn file.'));
-    } else {
-      nhac.pause(); datTrangThaiNhac(false);
+  // Giai điệu nhịp 3/4: [nốt MIDI, số phách]
+  const GIAI_DIEU = [
+    [76, 1.5], [74, .5], [72, 1], [76, 1], [81, 1], [79, 1], [77, 1.5], [76, .5], [72, 1], [74, 2], [67, 1],
+    [76, 1.5], [74, .5], [72, 1], [71, 1], [76, 1], [79, 1], [81, 1.5], [79, .5], [77, 1], [79, 3],
+    [81, 1], [84, 1], [83, 1], [79, 2], [76, 1], [77, 1], [81, 1], [79, 1], [76, 2], [72, 1],
+    [74, 1], [77, 1], [81, 1], [79, 1.5], [77, .5], [74, 1], [76, 1], [74, 1], [71, 1], [72, 3]
+  ];
+  // Hợp âm đệm cho từng ô nhịp: [nốt trầm, nốt 2, nốt 3] (C Am F G C Em F G Am Em F C Dm G C C)
+  const C = [48, 55, 60], Am = [45, 52, 57], F = [41, 48, 53], G = [43, 50, 55], Em = [40, 47, 52], Dm = [38, 45, 50];
+  const HOP_AM = [C, Am, F, G, C, Em, F, G, Am, Em, F, C, Dm, G, C, C];
+  const SO_PHACH = HOP_AM.length * 3, GIAY_MOI_PHACH = 60 / 84;
+  // Gộp giai điệu + đệm thành danh sách sự kiện [phách, nốt, loại] xếp theo thời gian
+  const SU_KIEN = (() => {
+    const ds = [];
+    let t = 0;
+    for (const [m, b] of GIAI_DIEU) { ds.push([t, m, 'giai']); t += b; }
+    HOP_AM.forEach((h, i) => ds.push([i * 3, h[0], 'tram'], [i * 3 + 1, h[1], 'dem'], [i * 3 + 2, h[2], 'dem']));
+    return ds.sort((a, b) => a[0] - b[0]);
+  })();
+
+  const hopNhac = {
+    ctx: null, dangPhat: false,
+    khoiTao() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      const ctx = this.ctx = new AC();
+      this.chinh = ctx.createGain(); this.chinh.gain.value = 0;
+      // Tiếng vang nhẹ: delay có phản hồi
+      const tre = ctx.createDelay(); tre.delayTime.value = .27;
+      const phanHoi = ctx.createGain(); phanHoi.gain.value = .28;
+      const uot = ctx.createGain(); uot.gain.value = .22;
+      this.chinh.connect(ctx.destination); this.chinh.connect(tre);
+      tre.connect(phanHoi); phanHoi.connect(tre); tre.connect(uot); uot.connect(ctx.destination);
+      return true;
+    },
+    // Một nốt kiểu hộp nhạc: bật nhanh, tắt dần
+    not(midi, t, dai, am, kieu) {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = kieu; o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(am, t + .015);
+      g.gain.exponentialRampToValueAtTime(.0008, t + dai);
+      o.connect(g); g.connect(this.chinh);
+      o.start(t); o.stop(t + dai + .05);
+    },
+    // Lên lịch trước ~0,3 giây để nhạc đều, không giật
+    lenLich() {
+      for (;;) {
+        const [b, m, loai] = SU_KIEN[this.viTri];
+        const t = this.goc + (this.vong * SO_PHACH + b) * GIAY_MOI_PHACH;
+        if (t > this.ctx.currentTime + .3) break;
+        if (loai === 'giai') { this.not(m, t, 1.5, .2, 'sine'); this.not(m + 12, t, .6, .035, 'sine'); }
+        else if (loai === 'tram') this.not(m, t, 1.3, .13, 'triangle');
+        else this.not(m, t, .7, .06, 'triangle');
+        if (++this.viTri >= SU_KIEN.length) { this.viTri = 0; this.vong++; }
+      }
+    },
+    batDau() {
+      if (!this.ctx && !this.khoiTao()) return false;
+      clearTimeout(this.henTat); clearInterval(this.henLich);
+      this.ctx.resume();
+      const t = this.ctx.currentTime, g = this.chinh.gain;
+      g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(.55, t + 1.2);
+      this.viTri = 0; this.vong = 0; this.goc = t + .12;
+      this.lenLich();
+      this.henLich = setInterval(() => this.lenLich(), 60);
+      this.dangPhat = true;
+      return true;
+    },
+    dung() {
+      if (!this.ctx) return;
+      this.dangPhat = false;
+      clearInterval(this.henLich);
+      const t = this.ctx.currentTime, g = this.chinh.gain;
+      g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + .4);
+      clearTimeout(this.henTat);
+      this.henTat = setTimeout(() => { if (!this.dangPhat) this.ctx.suspend(); }, 500);
     }
+  };
+  // Tạm dừng khi chuyển tab, phát tiếp khi quay lại
+  document.addEventListener('visibilitychange', () => {
+    if (!hopNhac.ctx) return;
+    if (document.hidden) hopNhac.ctx.suspend();
+    else if (hopNhac.dangPhat) hopNhac.ctx.resume();
   });
+
+  const nhac = $('#nhacNen'), nutNhac = $('#nutNhac');
+  const dangCoNhac = () => nutNhac.classList.contains('dang-phat');
+  function datTrangThaiNhac(phat) {
+    nutNhac.classList.toggle('dang-phat', phat);
+    nutNhac.setAttribute('aria-pressed', phat);
+    $('#nutHopNhac').textContent = hopNhac.dangPhat ? '⏸ Dừng' : '▶ Phát';
+  }
+  function phatHopNhac() {
+    nhac.pause();
+    if (hopNhac.batDau()) datTrangThaiNhac(true);
+    else thongBao('Trình duyệt này không hỗ trợ phát nhạc 😢');
+  }
+  async function batNhac() {
+    if (DUONG_DAN_NHAC) {
+      if (!nhac.getAttribute('src')) nhac.src = DUONG_DAN_NHAC;
+      try { await nhac.play(); hopNhac.dung(); datTrangThaiNhac(true); return; }
+      catch { thongBao('Không phát được file nhạc – chuyển sang Hộp nhạc tri ân.'); }
+    }
+    phatHopNhac();
+  }
+  function tatNhac() { nhac.pause(); hopNhac.dung(); datTrangThaiNhac(false); }
+  nutNhac.addEventListener('click', () => dangCoNhac() ? tatNhac() : batNhac());
+
+  // Danh sách bài hát gợi ý (mở tìm kiếm trên YouTube, không chép nhạc vào trang)
+  const GOI_Y_NHAC = [
+    { ten: 'Bụi phấn', tg: 'Vũ Hoàng', ghi: 'Ca khúc quen thuộc nhất về thầy cô và bục giảng' },
+    { ten: 'Người thầy', tg: 'Nguyễn Nhất Huy', ghi: 'Lời cảm ơn người lái đò thầm lặng' },
+    { ten: 'Những bông hoa những bài ca', tg: 'Hoàng Long', ghi: 'Vui tươi, hợp để hát tập thể' },
+    { ten: 'Mong ước kỷ niệm xưa', tg: 'Xuân Phương', ghi: 'Nhớ mái trường, bạn bè, tuổi học trò' },
+    { ten: 'Mái trường mến yêu', tg: 'Lê Quốc Thắng', ghi: 'Giai điệu trong trẻo về thầy cô, mái trường' },
+    { ten: 'Khi tóc thầy bạc', tg: '', ghi: 'Sâu lắng, xúc động' },
+    { ten: 'Em vẫn nhớ trường xưa', tg: '', ghi: 'Hoài niệm, nhẹ nhàng' },
+    { ten: 'Thầy cô cho em mùa xuân', tg: '', ghi: 'Ấm áp, phù hợp văn nghệ 20/11' }
+  ];
+  $('#dsNhac').append(...GOI_Y_NHAC.map(b => {
+    const li = document.createElement('li');
+    const tim = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${b.ten} ${b.tg} nhạc 20/11`.replace(/\s+/g, ' '));
+    li.innerHTML = '<div><b></b><small></small></div><a target="_blank" rel="noopener">▶ YouTube</a>';
+    li.querySelector('b').textContent = b.ten;
+    li.querySelector('small').textContent = (b.tg ? b.tg + ' · ' : '') + b.ghi;
+    const a = li.querySelector('a');
+    a.href = tim;
+    a.setAttribute('aria-label', `Nghe ${b.ten} trên YouTube`);
+    a.addEventListener('click', tatNhac); // tắt nhạc nền để không bị chồng tiếng
+    return li;
+  }));
+
+  // Mở/đóng bảng gợi ý nhạc
+  const bangNhac = $('#bangNhac'), nutGoiY = $('#nutGoiYNhac');
+  function moBangNhac(mo) { bangNhac.hidden = !mo; nutGoiY.setAttribute('aria-expanded', mo); }
+  nutGoiY.addEventListener('click', () => moBangNhac(bangNhac.hidden));
+  $('#dongBangNhac').addEventListener('click', () => moBangNhac(false));
+  $('#nutHopNhac').addEventListener('click', () => hopNhac.dangPhat ? tatNhac() : phatHopNhac());
+  document.addEventListener('click', e => {
+    if (!bangNhac.hidden && !bangNhac.contains(e.target) && !nutGoiY.contains(e.target)) moBangNhac(false);
+  });
+  addEventListener('keydown', e => { if (e.key === 'Escape') moBangNhac(false); });
   </script>
 </body>
 </html>
