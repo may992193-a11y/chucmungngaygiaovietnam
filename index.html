@@ -370,8 +370,21 @@
     .san-khau-thiep .nut-vien { color: var(--kem); border-color: var(--vang-nhat); }
 
     /* ===================== CỬA SỔ ẢNH (iOS / trình duyệt trong app) ===================== */
-    .lop-anh { position: fixed; inset: 0; z-index: 200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; background: rgba(30, 6, 12, .88); color: var(--kem); text-align: center; }
-    .lop-anh img { max-width: min(420px, 100%); max-height: 70vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
+    .lop-anh { --la-nen-toi: rgba(30, 6, 12, .88); }
+    /* Cửa sổ kết quả sau khi tạo ảnh: ảnh + nhạc gửi kèm + lời chúc + tất cả bài hát */
+    .lop-anh { position: fixed; inset: 0; z-index: 200; overflow-y: auto; padding: 20px 16px calc(24px + env(safe-area-inset-bottom)); background: var(--la-nen-toi); }
+    .la-hop { position: relative; max-width: 440px; margin: 0 auto; padding: 20px 18px; border-radius: 20px; text-align: center; color: var(--bn-chu); background: var(--bn-nen); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .7); }
+    .la-dong { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; border: 0; border-radius: 50%; font-size: 1.4rem; line-height: 1; color: var(--bn-chu); background: var(--bn-mo); }
+    .la-tieu-de { margin-bottom: 12px; font-weight: 700; font-size: 1.1rem; color: var(--bn-nhan); }
+    .la-hop img { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 12px; }
+    .la-goi-y { margin: 10px 0; font-size: .85rem; opacity: .8; }
+    .la-muc { margin-top: 16px; padding-top: 14px; text-align: left; border-top: 1px dashed var(--bn-vien); }
+    .la-nhan { display: block; margin-bottom: 8px; color: var(--bn-nhan); }
+    .la-bai { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bn-mo); }
+    .la-bai span { font-weight: 600; }
+    #laKhung { margin-top: 10px; }
+    #laLoi p { margin-bottom: 8px; font-size: .92rem; line-height: 1.6; }
+    #laLoi b { color: var(--bn-nhan); }
 
     /* ===================== NÚT NHẠC, THÔNG BÁO, FOOTER ===================== */
     .nut-nhac {
@@ -386,7 +399,7 @@
     .nut-nhac.dang-phat .gach { opacity: 0; }
     @keyframes xoay { to { transform: rotate(360deg); } }
 
-    .bang-nhac, .nut-goi-y-nhac { --bn-z: 150; --bn-nen: #fffaf2; --bn-chu: #3b2a24; --bn-nhan: #7a1c2b; --bn-nut-chu: #fff8ec; --bn-vien: rgba(212, 167, 60, .5); --bn-mo: rgba(212, 167, 60, .12); }
+    .bang-nhac, .nut-goi-y-nhac, .la-hop { --bn-z: 150; --bn-nen: #fffaf2; --bn-chu: #3b2a24; --bn-nhan: #7a1c2b; --bn-nut-chu: #fff8ec; --bn-vien: rgba(212, 167, 60, .5); --bn-mo: rgba(212, 167, 60, .12); }
     /* Nút & bảng gợi ý nhạc */
     .nut-goi-y-nhac {
       position: fixed; right: 76px; bottom: calc(22px + env(safe-area-inset-bottom)); z-index: var(--bn-z);
@@ -657,10 +670,22 @@
   </div>
 
   <!-- Cửa sổ hiện ảnh (dùng khi trình duyệt không hỗ trợ tải trực tiếp, VD: iPhone, Zalo, Facebook) -->
-  <div class="lop-anh" id="lopAnh" hidden>
-    <p>📲 Nhấn giữ vào ảnh để lưu về máy</p>
-    <img id="anhThiep" alt="Ảnh thiệp 20/11">
-    <button type="button" class="nut nut-vang" id="nutDongAnh">Đóng</button>
+  <!-- Kết quả sau khi tạo ảnh: ảnh + nhạc gửi kèm (nút phát) + lời chúc + tất cả bài hát -->
+  <div class="lop-anh" id="lopAnh" role="dialog" aria-modal="true" aria-label="Ảnh đã tạo" hidden>
+    <div class="la-hop">
+      <button type="button" class="la-dong" id="nutDongAnh" aria-label="Đóng">×</button>
+      <p class="la-tieu-de">🎉 Ảnh đã tạo xong!</p>
+      <img id="anhKetQua" alt="Ảnh chúc mừng vừa tạo">
+      <p class="la-goi-y" id="laGoiY"></p>
+      <a class="nut nut-nho" id="laTai" download>⬇ Tải ảnh về máy</a>
+      <div class="la-muc">
+        <b class="la-nhan">🎵 Nhạc gửi kèm</b>
+        <div class="la-bai"><span id="laBai"></span><button type="button" class="bn-phat" id="laPhat">▶ Phát bài hát</button></div>
+        <div class="bn-khung" id="laKhung" hidden></div>
+      </div>
+      <div class="la-muc"><b class="la-nhan">💌 Lời chúc</b><div id="laLoi"></div></div>
+      <div class="la-muc"><b class="la-nhan">🎶 Tất cả bài hát</b><ul class="bn-ds" id="laDsNhac"></ul></div>
+    </div>
   </div>
 
   <!-- Nút nhạc nền + thẻ audio -->
@@ -1198,16 +1223,20 @@
       const url = URL.createObjectURL(blob);
       const tenFile = 'thiep-20-11-' + (boDau(d.t || '') || 'thay-co') + '.png';
 
-      if (laIOS || trongApp) {
-        $('#anhThiep').src = url;
-        $('#lopAnh').hidden = false;
-      } else {
+      if (!(laIOS || trongApp)) { // iPhone / Zalo / Facebook: không tải trực tiếp được → nhấn giữ ảnh để lưu
         const a = document.createElement('a');
         a.href = url; a.download = tenFile;
         document.body.appendChild(a); a.click(); a.remove();
-        thongBao('🎉 Đã tải ảnh thiệp!');
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
       }
+      // Hiện kết quả: ảnh + nhạc gửi kèm (nút phát) + lời chúc + tất cả bài hát
+      moKetQua({
+        url, tenFile, n: d.n,
+        loi: [
+          { ten: 'Kính gửi', chu: d.t || 'Thầy Cô kính yêu' },
+          { ten: 'Lời chúc', chu: d.l },
+          { ten: 'Người gửi', chu: d.g || 'Học trò nhỏ' }
+        ]
+      });
     } catch (loi) {
       console.error(loi);
       thongBao('Không tạo được ảnh, bạn thử lại nhé!');
@@ -1217,10 +1246,6 @@
   }
 
   $('#nutTaiAnh').addEventListener('click', e => taiAnh($('#xemTruoc'), layDuLieu(), e.currentTarget));
-  $('#nutDongAnh').addEventListener('click', () => {
-    $('#lopAnh').hidden = true;
-    URL.revokeObjectURL($('#anhThiep').src);
-  });
 
   /* =====================================================================
      8. NHẠC NỀN & GỢI Ý NHẠC (mặc định tắt)
@@ -1387,6 +1412,9 @@
     $('#bnVideo').hidden = true;
     $('#nhacNhanKhung').replaceChildren(); // khung nhạc của người nhận
     $('#nhacNhanKhung').hidden = true;
+    $('#laKhung').replaceChildren(); // khung nhạc trong cửa sổ kết quả ảnh
+    $('#laKhung').hidden = true;
+    $('#laDsNhac').querySelectorAll('li.dang').forEach(li => li.classList.remove('dang'));
     [...dsNhac.children].forEach(li => li.classList.remove('dang'));
   }
   $('#bnTatVideo').addEventListener('click', tatNhac);
@@ -1401,6 +1429,66 @@
     if (!bangNhac.hidden && !bangNhac.contains(e.target) && !nutGoiY.contains(e.target)) moBangNhac(false);
   });
   addEventListener('keydown', e => { if (e.key === 'Escape') moBangNhac(false); });
+  /* ---------- Cửa sổ kết quả sau khi tạo ảnh ---------- */
+  let nhacKetQua = '', urlAnhCu = '';
+  // loi: [{ ten, chu }] – các dòng lời chúc; n: nhạc gửi kèm ('' / 'hop' / mã YouTube)
+  function moKetQua({ url, tenFile, loi, n }) {
+    if (urlAnhCu && urlAnhCu !== url) URL.revokeObjectURL(urlAnhCu);
+    urlAnhCu = url;
+    $('#anhKetQua').src = url;
+    $('#laTai').href = url;
+    $('#laTai').download = tenFile;
+    $('#laGoiY').textContent = (laIOS || trongApp) ? '📲 Nhấn giữ vào ảnh để lưu về máy' : '✅ Ảnh đã được tải về máy';
+    $('#laLoi').replaceChildren(...loi.filter(x => x.chu).map(({ ten, chu }) => {
+      const p = document.createElement('p');
+      if (ten) { const b = document.createElement('b'); b.textContent = ten + ': '; p.append(b); }
+      p.append(chu);
+      return p;
+    }));
+    nhacKetQua = n || '';
+    const bai = thongTinNhac(nhacKetQua);
+    $('#laBai').textContent = bai ? `${bai.ten} – ${bai.ca}` : 'Chưa chọn bài – bấm ▶ Nghe ở danh sách bên dưới';
+    $('#laPhat').hidden = !bai;
+    $('#lopAnh').hidden = false;
+    $('#lopAnh').scrollTop = 0;
+  }
+  // Phát một bài ngay trong cửa sổ kết quả
+  function phatTrongKetQua(n) {
+    if (n === 'hop') { phatHopNhac(); return; }
+    const b = thongTinNhac(n);
+    if (!b) return;
+    nhac.pause(); hopNhac.dung(); tatVideo();
+    $('#laKhung').replaceChildren(taoKhungYouTube(b));
+    $('#laKhung').hidden = false;
+    $('#laDsNhac').querySelectorAll('li[data-id]').forEach(li => li.classList.toggle('dang', li.dataset.id === n));
+    datTrangThaiNhac(true);
+  }
+  $('#laPhat').addEventListener('click', () => phatTrongKetQua(nhacKetQua));
+  // Danh sách tất cả bài hát (Hộp nhạc tri ân + các nhóm thầy cô / mẹ)
+  (function veDsKetQua() {
+    const ul = $('#laDsNhac');
+    const tieuDe = chu => { const li = document.createElement('li'); li.className = 'bn-tieu-de'; li.textContent = chu; ul.append(li); };
+    const them = (id, ten, phu) => {
+      const li = document.createElement('li');
+      li.dataset.id = id;
+      li.innerHTML = '<div><b></b><small></small></div><button type="button" class="bn-nghe">▶ Nghe</button>';
+      li.querySelector('b').textContent = ten;
+      li.querySelector('small').textContent = phu;
+      li.querySelector('button').addEventListener('click', () => phatTrongKetQua(id));
+      ul.append(li);
+    };
+    tieuDe('🎶 Có sẵn trên trang');
+    them('hop', 'Hộp nhạc tri ân', 'Giai điệu nhẹ nhàng, không cần mạng YouTube');
+    let truoc = '';
+    GOI_Y_NHAC.forEach(b => {
+      const nhom = b.nhom || 'thay';
+      if (nhom !== truoc) { tieuDe(TEN_NHOM[nhom]); truoc = nhom; }
+      them(b.id, b.ten, b.ca + ' · ' + b.loai);
+    });
+  })();
+  function dongKetQua() { $('#lopAnh').hidden = true; tatNhac(); }
+  $('#nutDongAnh').addEventListener('click', dongKetQua);
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#lopAnh').hidden) dongKetQua(); });
   </script>
 </body>
 </html>
