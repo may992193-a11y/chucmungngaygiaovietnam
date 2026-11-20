@@ -24,8 +24,6 @@
 
   <!-- html2canvas: lưu ảnh -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-  <!-- qrcode-generator: mã QR trên ảnh để mở khu vườn & nghe nhạc gửi kèm -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 
   <style>
     /* ===================== NỀN TẢNG ===================== */
@@ -318,7 +316,13 @@
       display: flex; align-items: center; gap: .9em; padding: .8em .9em; border-radius: 14px; font-size: 16px;
       color: var(--kem); background: #1d1b48; border: 1px solid rgba(255, 217, 138, .35);
     }
-    .pn-qr { flex: none; width: 6.6em; height: 6.6em; border-radius: 6px; background: #fff; image-rendering: pixelated; }
+    .pn-phat {
+      flex: none; display: grid; place-items: center; width: 4.6em; height: 4.6em; padding: 0; border: 0; border-radius: 50%;
+      cursor: pointer; background: linear-gradient(135deg, #ffe2a8, #ff9fbf); box-shadow: 0 .35em .9em -.35em rgba(0, 0, 0, .45); transition: transform .2s;
+    }
+    .pn-phat:hover { transform: scale(1.07); }
+    .pn-phat:focus-visible { outline: 2px solid #ffd98a; outline-offset: 3px; }
+    .pn-phat svg { display: block; width: 2.2em; height: 2.2em; margin-left: .2em; }
     .pn-chu { min-width: 0; }
     .pn-chu span { display: block; overflow-wrap: anywhere; }
     .pn-nhan { font-size: .72em; font-weight: 700; color: var(--vang); }
@@ -457,7 +461,7 @@
             <select class="o-nhap" id="chonNhac"></select>
             <button type="button" class="nut nut-vien nut-nho" id="nutNgheThu">▶ Nghe thử</button>
           </div>
-          <small class="goi-y-nho">Người nhận mở link, hoặc quét mã QR trên ảnh, sẽ được nghe bài này.</small>
+          <small class="goi-y-nho">Ảnh tặng có nút ▶ để bấm nghe bài này; người nhận mở link là nhạc tự phát.</small>
         </div>
         <p class="xem-loi" id="xemLoi">Kính gửi thầy cô…</p>
         <div class="hang-nut">
@@ -1051,15 +1055,7 @@
   }
   const layDuLieu = () => ({ t: chuan($('#tenThayCo').value), g: chuan($('#tenNguoiGui').value), n: chonNhac.value });
 
-  // Mã QR (ảnh GIF dạng data URL) – trả về '' nếu chưa tải được thư viện
-  function taoQR(noiDung) {
-    if (typeof qrcode !== 'function') return '';
-    const q = qrcode(0, 'L');
-    q.addData(noiDung);
-    q.make();
-    return q.createDataURL(8, 2);
-  }
-  // Phiếu nhạc dưới ảnh: ảnh không chứa được âm thanh, nên nhạc được "gửi kèm" qua mã QR mở đúng khu vườn
+  // Phiếu nhạc dưới ảnh tặng: tên bài + nút ▶ tròn để mọi người bấm nghe ngay
   function datPhieuNhac(khung, d) {
     let phieu = khung.querySelector('.phieu-nhac');
     const bai = thongTinNhac(d.n);
@@ -1067,17 +1063,25 @@
     if (!phieu) {
       phieu = document.createElement('div');
       phieu.className = 'phieu-nhac';
-      phieu.innerHTML = '<img class="pn-qr" alt="Mã QR mở khu vườn và nghe nhạc"><div class="pn-chu">'
+      // Biểu tượng ▶ vẽ bằng SVG (màu ghi thẳng, để ảnh tải về vẽ đúng màu)
+      phieu.innerHTML = '<button type="button" class="pn-phat"><svg viewBox="0 0 24 24" aria-hidden="true">'
+        + '<path d="M8 5.5v13l10.5-6.5z" fill="#3a1530"/></svg></button><div class="pn-chu">'
         + '<span class="pn-nhan">🎵 NHẠC GỬI KÈM</span><span class="pn-bai"></span><span class="pn-ca"></span>'
-        + '<span class="pn-goi-y">📱 Quét mã QR để mở khu vườn và nghe nhạc</span></div>';
+        + '<span class="pn-goi-y">Bấm ▶ để nghe bài hát</span></div>';
+      phieu.querySelector('.pn-phat').addEventListener('click', () => phatTuPhieu(phieu.dataset.n, khung));
       khung.append(phieu);
       theoDoiCo.observe(phieu);
     }
+    phieu.dataset.n = d.n;
+    phieu.querySelector('.pn-phat').setAttribute('aria-label', 'Phát bài ' + bai.ten);
     phieu.querySelector('.pn-bai').textContent = bai.ten;
     phieu.querySelector('.pn-ca').textContent = bai.ca;
-    const qr = taoQR(taoLink(d)), anh = phieu.querySelector('.pn-qr');
-    anh.hidden = !qr;
-    if (qr) anh.src = qr;
+  }
+  // Bấm ▶ trên phiếu nhạc
+  function phatTuPhieu(n, khung) {
+    if (n === 'hop') { phatHopNhac(); return; }
+    moBangNhac(true);
+    phatVideo(GOI_Y_NHAC.findIndex(b => b.id === n));
   }
 
   function capNhatTen() {
@@ -1164,7 +1168,7 @@
   $('#nutLuuAnh').addEventListener('click', async e => {
     const nut = e.currentTarget, nhan = nut.textContent, khung = $('#anhXuat'), d = layDuLieu();
     if (typeof html2canvas !== 'function') { thongBao('Chưa tải được thư viện tạo ảnh, hãy kiểm tra kết nối mạng.'); return; }
-    datPhieuNhac(khung, d); // tạo lại mã QR phòng khi thư viện QR vừa tải xong
+    datPhieuNhac(khung, d); // cập nhật phiếu nhạc theo dữ liệu mới nhất
     nut.disabled = true; nut.textContent = '⏳ Đang tạo ảnh…';
     try {
       // Chờ font (kể cả phần chữ có dấu) tải xong để ảnh hiển thị đúng tiếng Việt
@@ -1177,7 +1181,14 @@
       await document.fonts.ready;
       const canvas = await html2canvas(khung, {
         scale: Math.max(2, Math.min(3, 1080 / khung.offsetWidth)), // ảnh rộng ~1080px
-        backgroundColor: '#0d0c26', logging: false, useCORS: true
+        backgroundColor: '#0d0c26', logging: false, useCORS: true,
+        onclone: doc => {
+          const st = doc.createElement('style');
+          st.textContent = '.pn-phat{box-shadow:none!important;transition:none!important}';
+          doc.head.appendChild(st);
+          // Ảnh là hình tĩnh, không bấm được nút ▶ → hướng dẫn mở link để nghe
+          doc.querySelectorAll('.pn-goi-y').forEach(x => { x.textContent = '🔗 Mở link khu vườn để nghe bài hát'; });
+        }
       });
       const blob = await new Promise(ok => canvas.toBlob(ok, 'image/png'));
       const url = URL.createObjectURL(blob);
@@ -1384,7 +1395,8 @@
   $('#dongBangNhac').addEventListener('click', () => moBangNhac(false));
   $('#nutHopNhac').addEventListener('click', () => hopNhac.dangPhat ? tatNhac() : phatHopNhac());
   document.addEventListener('click', e => {
-    if (!bangNhac.hidden && !bangNhac.contains(e.target) && !nutGoiY.contains(e.target)) moBangNhac(false);
+    // Bỏ qua cú bấm vào các nút mở bảng (nếu không, chính cú bấm đó sẽ đóng bảng ngay sau khi mở)
+    if (!bangNhac.hidden && !bangNhac.contains(e.target) && !e.target.closest('#nutGoiYNhac, #nutNgheThu, .pn-phat')) moBangNhac(false);
   });
   addEventListener('keydown', e => { if (e.key === 'Escape') moBangNhac(false); });
   /* ---------- Cửa sổ kết quả sau khi tạo ảnh ---------- */
