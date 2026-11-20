@@ -340,6 +340,7 @@
     .bn-nut-ds { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
     .bn-nghe { padding: 6px 12px; border: 0; border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--bn-nut-chu); background: var(--bn-nhan); }
     .bn-ds li.dang b { color: var(--bn-nhan); }
+    .bn-ds li.bn-tieu-de { display: block; padding: 14px 0 4px; border-bottom: 0; font-size: .82rem; font-weight: 700; color: var(--bn-nhan); }
     .bn-ds li.dang .bn-nghe { opacity: .55; }
 
     .thong-bao {
@@ -474,13 +475,13 @@
   <audio id="nhacNen" loop preload="none"></audio>
   <!-- Gợi ý nhạc chúc mừng thầy cô -->
   <button type="button" class="nut-goi-y-nhac" id="nutGoiYNhac" aria-expanded="false" aria-controls="bangNhac">🎵 Gợi ý nhạc</button>
-  <div class="bang-nhac" id="bangNhac" role="dialog" aria-label="Gợi ý nhạc chúc mừng thầy cô" hidden>
-    <div class="bn-dau"><b>🎵 Nhạc chúc mừng thầy cô</b><button type="button" class="bn-dong" id="dongBangNhac" aria-label="Đóng">×</button></div>
+  <div class="bang-nhac" id="bangNhac" role="dialog" aria-label="Gợi ý nhạc chúc mừng thầy cô và mẹ" hidden>
+    <div class="bn-dau"><b>🎵 Nhạc chúc mừng thầy cô &amp; mẹ</b><button type="button" class="bn-dong" id="dongBangNhac" aria-label="Đóng">×</button></div>
     <div class="bn-hop">
       <div><b>Hộp nhạc tri ân</b><small>Giai điệu nhẹ nhàng có sẵn – phát ngay trên trang, không cần tải gì thêm</small></div>
       <button type="button" class="bn-phat" id="nutHopNhac">▶ Phát</button>
     </div>
-    <p class="bn-nhom">Chọn bài hát ngày thầy cô · phát từ YouTube</p>
+    <p class="bn-nhom">Chọn bài hát · phát từ YouTube</p>
     <div class="bn-video" id="bnVideo" hidden>
       <div class="bn-khung" id="bnKhung"></div>
       <div class="bn-dang"><span id="bnDangPhat"></span><button type="button" id="bnTatVideo">✕ Tắt</button></div>
@@ -1150,7 +1151,7 @@
   function tatNhac() { nhac.pause(); hopNhac.dung(); tatVideo(); datTrangThaiNhac(false); }
   nutNhac.addEventListener('click', () => dangCoNhac() ? tatNhac() : batNhac());
 
-  // Bài hát ngày thầy cô trên YouTube (đã kiểm tra: video còn hoạt động và cho phép phát nhúng)
+  // Bài hát trên YouTube: về thầy cô và về mẹ (đã kiểm tra: video còn hoạt động và cho phép phát nhúng)
   const GOI_Y_NHAC = [
     { ten: 'Bụi phấn', ca: 'Kitty Ngọc Nhi', loai: 'Thiếu nhi', id: 'KDhMw9jKX20' },
     { ten: 'Bụi phấn', ca: 'Khánh Chi', loai: 'Thiếu nhi', id: '9zUO-Scm4z8' },
@@ -1159,12 +1160,38 @@
     { ten: 'Những bông hoa những bài ca', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Thiếu nhi', id: 'f8NsIRhM3jY' },
     { ten: 'Mong ước kỷ niệm xưa', ca: 'Ngọc Anh (Thúy Nga)', loai: 'Trữ tình', id: 'vTMBbGcnQSw' },
     { ten: 'Mong ước kỷ niệm xưa', ca: 'Mây Saigon', loai: 'Hợp ca', id: '4qNQNfxagog' },
+    { ten: 'Mái trường mến yêu', ca: 'Candy Ngọc Hà', loai: 'Thiếu nhi', id: 'ZKgYoysfXCs' },
+    { ten: 'Khi tóc thầy bạc trắng', ca: 'Thủy Anh', loai: 'Nhạc: Trần Đức', id: 'v4DqrvL_9R0' },
+    { ten: 'Thầy cô cho em mùa xuân', ca: 'Sunny Tuệ Cát', loai: 'Thiếu nhi', id: '8abBqnELxHM' },
+    { ten: 'Cô giáo em', ca: 'Bé Ellie Khánh Ngọc', loai: 'Thiếu nhi', id: 'GLaG7TSfqzI' },
     { ten: 'Món quà tặng cô, Thầy cô cho em mùa xuân', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Liên khúc', id: 'ejc2zpWtTlk' },
-    { ten: 'Món quà âm nhạc tặng thầy cô 20/11', ca: 'Trường Phổ thông liên cấp FPT Bắc Giang', loai: 'Học sinh biểu diễn', id: 'YuIxlTTOJPA' }
+    { ten: 'Món quà âm nhạc tặng thầy cô 20/11', ca: 'Trường Phổ thông liên cấp FPT Bắc Giang', loai: 'Học sinh biểu diễn', id: 'YuIxlTTOJPA' },
+    // Bài hát về mẹ (nhom: 'me') – đều từ kênh chính thức của ca sĩ / đơn vị phát hành
+    { ten: 'Lòng mẹ', ca: 'Hoàng Oanh', loai: 'Nhạc: Y Vân', nhom: 'me', id: 'xD37IQoWtsw' },
+    { ten: 'Lòng mẹ', ca: 'Khánh Ly', loai: 'Nhạc: Y Vân', nhom: 'me', id: 'fyxB9mJHwGg' },
+    { ten: 'Bông hồng cài áo', ca: 'Hồ Văn Cường', loai: 'Nhạc: Phạm Thế Mỹ', nhom: 'me', id: '-P36pRz9Q-8' },
+    { ten: 'Bông hồng cài áo', ca: 'Bằng Kiều (Paris By Night)', loai: 'Nhạc: Phạm Thế Mỹ', nhom: 'me', id: 'N3hjKbKAg2A' },
+    { ten: 'Nhật ký của mẹ', ca: 'Hiền Thục', loai: 'Nhạc: Nguyễn Văn Chung', nhom: 'me', id: 'KGWJCAc4kGg' },
+    { ten: 'Mẹ yêu con', ca: 'Hà Trịnh', loai: 'Nhạc: Nguyễn Văn Tý', nhom: 'me', id: 'YmN-P_EOmb8' },
+    { ten: 'Con nợ mẹ', ca: 'Trịnh Đình Quang', loai: 'Nhạc trẻ', nhom: 'me', id: 'ATp5ABB23Fs' },
+    { ten: 'Chỉ có một trên đời', ca: 'Xuân Mai', loai: 'Thiếu nhi', nhom: 'me', id: 'r5sPphsthBo' },
+    { ten: 'Chỉ có một trên đời', ca: 'Candy Ngọc Hà', loai: 'Thiếu nhi', nhom: 'me', id: 'ImMZKxro7PI' }
   ];
   const dsNhac = $('#dsNhac');
+  // Chia danh sách theo nhóm: thầy cô / mẹ (bài không ghi nhom là bài về thầy cô)
+  const TEN_NHOM = { thay: '👩‍🏫 Bài hát về thầy cô', me: '💐 Bài hát về mẹ' };
+  let nhomTruoc = '';
   GOI_Y_NHAC.forEach((b, i) => {
+    const nhom = b.nhom || 'thay';
+    if (nhom !== nhomTruoc) {
+      const tieuDe = document.createElement('li');
+      tieuDe.className = 'bn-tieu-de';
+      tieuDe.textContent = TEN_NHOM[nhom];
+      dsNhac.append(tieuDe);
+      nhomTruoc = nhom;
+    }
     const li = document.createElement('li');
+    li.dataset.i = i;
     li.innerHTML = '<div><b></b><small></small></div><div class="bn-nut-ds"><button type="button" class="bn-nghe">▶ Nghe</button><a target="_blank" rel="noopener">YouTube ↗</a></div>';
     li.querySelector('b').textContent = b.ten;
     li.querySelector('small').textContent = b.ca + ' · ' + b.loai;
@@ -1188,7 +1215,7 @@
     $('#bnKhung').replaceChildren(f);
     $('#bnDangPhat').textContent = '🎧 Đang phát: ' + b.ten;
     $('#bnVideo').hidden = false;
-    [...dsNhac.children].forEach((li, k) => li.classList.toggle('dang', k === i));
+    dsNhac.querySelectorAll('li[data-i]').forEach(li => li.classList.toggle('dang', +li.dataset.i === i));
     datTrangThaiNhac(true);
   }
   function tatVideo() {
