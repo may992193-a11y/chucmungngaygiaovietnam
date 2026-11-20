@@ -24,6 +24,8 @@
 
   <!-- html2canvas: xuất thiệp thành ảnh PNG -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <!-- qrcode-generator: mã QR trên ảnh thiệp để mở thiệp & nghe nhạc gửi kèm -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>
 
   <style>
     /* ===================== BIẾN MÀU & NỀN TẢNG ===================== */
@@ -155,6 +157,29 @@
     .bo-cuc-thiep { display: grid; gap: 28px; align-items: start; }
     .cot-xem-truoc { order: -1; } /* Điện thoại: thiệp xem trước nằm trên cùng */
     .khung-xem-truoc { max-width: 360px; margin: 0 auto; }
+    .anh-xuat { display: flex; flex-direction: column; gap: 10px; } /* vùng được chụp thành ảnh: thiệp + phiếu nhạc */
+
+    /* Chọn nhạc gửi kèm */
+    .dong-nhac { display: flex; gap: 8px; }
+    .dong-nhac .o-nhap { flex: 1; min-width: 0; }
+    select.o-nhap {
+      padding-right: 36px; background-repeat: no-repeat; background-position: right 12px center;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%237a1c2b' stroke-width='2'/%3E%3C/svg%3E");
+    }
+    .goi-y-nho { display: block; margin-top: 6px; font-size: .8rem; color: var(--chu-nhat); }
+
+    /* Phiếu nhạc dưới thiệp: tên bài + mã QR (cỡ chữ do JS đặt theo chiều rộng, giống thiệp) */
+    .phieu-nhac {
+      display: flex; align-items: center; gap: .9em; padding: .8em .9em; border-radius: 14px;
+      font-size: 16px; color: #4a2a22; background: #fffdf8; border: 1px solid #ead9bd; box-shadow: var(--bong);
+    }
+    .pn-qr { flex: none; width: 6.6em; height: 6.6em; border-radius: 6px; background: #fff; image-rendering: pixelated; }
+    .pn-chu { min-width: 0; }
+    .pn-chu span { display: block; overflow-wrap: anywhere; }
+    .pn-nhan { font-size: .72em; font-weight: 700; color: #b8862b; }
+    .pn-bai { font-family: 'Dancing Script', cursive; font-weight: 700; font-size: 1.45em; line-height: 1.2; color: var(--do-do); }
+    .pn-ca { font-size: .78em; color: var(--chu-nhat); }
+    .pn-goi-y { margin-top: .35em; font-size: .7em; color: var(--chu-nhat); }
     .nhan-xem-truoc { text-align: center; font-size: .85rem; color: var(--chu-nhat); margin-bottom: 10px; }
     @media (min-width: 880px) {
       .bo-cuc-thiep { grid-template-columns: 1.05fr 1fr; gap: 40px; }
@@ -227,7 +252,8 @@
 
     /* Lớp trang trí theo từng mẫu */
     .tt { position: absolute; inset: 0; z-index: 1; pointer-events: none; display: none; }
-    .tt svg { position: absolute; display: block; }
+    .tt .hv { position: absolute; }
+    .tt .hv svg { display: block; width: 100%; height: auto; }
     .mau-codien .tt-codien, .mau-hoasen .tt-hoasen, .mau-bangden .tt-bangden { display: block; }
 
     /* --- Mẫu 1: Cổ điển --- */
@@ -278,7 +304,11 @@
     .mau-bangden .t-nguoi { color: #fbd0d8; }
     .mau-bangden .t-ngan i { background: rgba(244, 241, 232, .6); }
     .mau-bangden .t-ngan b { background: #ffe9a8; }
-    .tt-bangden svg { width: 13%; opacity: .5; }
+    .tt-bangden .hv { width: 13%; opacity: .5; }
+    /* Màu nền đặc dưới gradient – ảnh tải về không bị trong suốt */
+    .mau-codien { background-color: #fcf3e2; }
+    .mau-hoasen { background-color: #fde4e9; }
+    .mau-bangden { background-color: #2f4a3a; }
     .tt-bangden .v1 { top: 4%; left: 5%; transform: rotate(-10deg); }
     .tt-bangden .v2 { top: 4%; right: 5%; }
     .tt-bangden .v3 { bottom: 7%; left: 5%; }
@@ -334,6 +364,8 @@
 
     .khung-thiep-nhan { width: min(380px, 88vw, calc((100svh - 190px) * .8)); min-width: 260px; animation: noiLen .9s cubic-bezier(.2, .8, .3, 1) both; }
     @keyframes noiLen { from { opacity: 0; transform: translateY(40px) scale(.9); } }
+    .nhac-nhan { width: min(380px, 88vw); margin-top: 14px; }
+    .nhac-nhan p { margin-bottom: 8px; font-size: .92rem; color: var(--vang-nhat); }
     .san-khau-thiep .hang-nut { justify-content: center; margin-top: 22px; width: min(380px, 100%); }
     .san-khau-thiep .nut-vien { color: var(--kem); border-color: var(--vang-nhat); }
 
@@ -491,6 +523,14 @@
                 <span class="dem-ky-tu" id="demKyTu">0/320</span>
               </div>
             </div>
+            <div class="truong">
+              <label for="chonNhac">🎵 Nhạc gửi kèm thiệp</label>
+              <div class="dong-nhac">
+                <select class="o-nhap" id="chonNhac"></select>
+                <button type="button" class="nut nut-vien nut-nho" id="nutNgheThu">▶ Nghe thử</button>
+              </div>
+              <small class="goi-y-nho">Người nhận mở link, hoặc quét mã QR trên ảnh thiệp, sẽ được nghe bài này.</small>
+            </div>
 
             <div class="hang-nut">
               <button type="button" class="nut" id="nutTaoLink">🔗 Tạo link thiệp</button>
@@ -513,8 +553,8 @@
 
           <!-- Xem trước thiệp -->
           <div class="cot-xem-truoc">
-            <p class="nhan-xem-truoc">✨ Xem trước thiệp</p>
-            <div class="khung-xem-truoc" id="xemTruoc"></div>
+            <p class="nhan-xem-truoc">✨ Xem trước ảnh thiệp</p>
+            <div class="khung-xem-truoc anh-xuat" id="xemTruoc"></div>
           </div>
         </div>
       </div>
@@ -532,11 +572,11 @@
     <div class="thiep mau-codien">
       <!-- Trang trí mẫu Cổ điển: góc hoa văn vàng + cành hoa đỏ -->
       <div class="tt tt-codien">
-        <svg class="goc tl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg>
-        <svg class="goc tr" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg>
-        <svg class="goc bl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg>
-        <svg class="goc br" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg>
-        <svg class="canh-tren" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50">
+        <div class="hv goc tl"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg></div>
+        <div class="hv goc tr"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg></div>
+        <div class="hv goc bl"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg></div>
+        <div class="hv goc br"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="none" stroke="#c9a14a" stroke-width="2.4" stroke-linecap="round"><path d="M6 72C6 36 36 6 72 6"/><path d="M15 54C19 34 34 19 54 15"/><path d="M6 72q10 4 6 16"/><path d="M72 6q4 10 16 6"/></g><circle cx="27" cy="27" r="6" fill="#b83246"/><circle cx="27" cy="27" r="2.4" fill="#f3d98b"/></svg></div>
+        <div class="hv canh-tren"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 50">
           <ellipse cx="46" cy="30" rx="16" ry="5.5" fill="#6e9a5a" transform="rotate(-18 46 30)"/>
           <ellipse cx="114" cy="30" rx="16" ry="5.5" fill="#6e9a5a" transform="rotate(18 114 30)"/>
           <circle cx="58" cy="30" r="9" fill="#d9586b"/><circle cx="58" cy="30" r="4" fill="#f3a1ae"/>
@@ -544,14 +584,14 @@
           <circle cx="80" cy="24" r="14" fill="#a82a3d"/><circle cx="80" cy="24" r="9.5" fill="#c9415a"/>
           <path d="M80 18a6 6 0 1 1-6 6" fill="none" stroke="#f08a9b" stroke-width="2"/>
           <circle cx="30" cy="36" r="2" fill="#d4a73c"/><circle cx="130" cy="36" r="2" fill="#d4a73c"/>
-        </svg>
+        </svg></div>
       </div>
       <!-- Trang trí mẫu Hoa sen: lá sen, hoa sen, cánh hoa -->
       <div class="tt tt-hoasen">
-        <svg class="la1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#a9d1a5" opacity=".55"/><path d="M50 50L50 6M50 50L88 30M50 50L12 30M50 50L84 76M50 50L16 78M50 50L50 94" stroke="#7fb07a" stroke-width="2" opacity=".8"/></svg>
-        <svg class="la2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#a9d1a5" opacity=".45"/><path d="M50 50L50 6M50 50L88 30M50 50L12 30M50 50L84 76M50 50L16 78M50 50L50 94" stroke="#7fb07a" stroke-width="2" opacity=".8"/></svg>
+        <div class="hv la1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#a9d1a5" opacity=".55"/><path d="M50 50L50 6M50 50L88 30M50 50L12 30M50 50L84 76M50 50L16 78M50 50L50 94" stroke="#7fb07a" stroke-width="2" opacity=".8"/></svg></div>
+        <div class="hv la2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#a9d1a5" opacity=".45"/><path d="M50 50L50 6M50 50L88 30M50 50L12 30M50 50L84 76M50 50L16 78M50 50L50 94" stroke="#7fb07a" stroke-width="2" opacity=".8"/></svg></div>
         <span class="canh c1"></span><span class="canh c2"></span><span class="canh c3"></span><span class="canh c4"></span>
-        <svg class="sen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
+        <div class="hv sen"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120">
           <ellipse cx="100" cy="110" rx="94" ry="9" fill="#7fb07a" opacity=".6"/>
           <path d="M100 104C60 100 30 80 20 56C50 58 80 76 100 104Z" fill="#f7bccb"/>
           <path d="M100 104C140 100 170 80 180 56C150 58 120 76 100 104Z" fill="#f7bccb"/>
@@ -559,14 +599,14 @@
           <path d="M100 104C128 92 148 62 146 30C120 44 104 72 100 104Z" fill="#f08aa3"/>
           <path d="M100 104C84 84 80 44 100 10C120 44 116 84 100 104Z" fill="#e5688a"/>
           <path d="M100 96C93 80 93 56 100 34C107 56 107 80 100 96Z" fill="#f7a8bb" opacity=".75"/>
-        </svg>
+        </svg></div>
       </div>
       <!-- Trang trí mẫu Bảng đen: hình vẽ phấn, khay phấn -->
       <div class="tt tt-bangden">
-        <svg class="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M8 16c8-3 16-3 24 2v34c-8-5-16-5-24-2zM56 16c-8-3-16-3-24 2v34c8-5 16-5 24-2z" fill="none" stroke="#f4f1e8" stroke-width="2.5" stroke-linejoin="round"/></svg>
-        <svg class="v2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M46 8l10 10-30 30-14 4 4-14zM40 14l10 10M16 40l8 8" fill="none" stroke="#ffe9a8" stroke-width="2.5" stroke-linejoin="round"/></svg>
-        <svg class="v3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 20c-6-5-20-4-20 12 0 14 10 24 16 24 2 0 3-1 4-1s2 1 4 1c6 0 16-10 16-24 0-16-14-17-20-12zM32 20c0-6 3-10 8-12" fill="none" stroke="#f7b2b2" stroke-width="2.5" stroke-linejoin="round"/></svg>
-        <svg class="v4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 6l7 17 18 1-14 11 5 18-16-10-16 10 5-18L7 24l18-1z" fill="none" stroke="#f4f1e8" stroke-width="2.5" stroke-linejoin="round"/></svg>
+        <div class="hv v1"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M8 16c8-3 16-3 24 2v34c-8-5-16-5-24-2zM56 16c-8-3-16-3-24 2v34c8-5 16-5 24-2z" fill="none" stroke="#f4f1e8" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
+        <div class="hv v2"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M46 8l10 10-30 30-14 4 4-14zM40 14l10 10M16 40l8 8" fill="none" stroke="#ffe9a8" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
+        <div class="hv v3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 20c-6-5-20-4-20 12 0 14 10 24 16 24 2 0 3-1 4-1s2 1 4 1c6 0 16-10 16-24 0-16-14-17-20-12zM32 20c0-6 3-10 8-12" fill="none" stroke="#f7b2b2" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
+        <div class="hv v4"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M32 6l7 17 18 1-14 11 5 18-16-10-16 10 5-18L7 24l18-1z" fill="none" stroke="#f4f1e8" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
         <div class="cong-thuc">a² + b² = c²</div>
         <div class="khay"><i></i><i></i><i></i></div>
       </div>
@@ -602,7 +642,12 @@
 
     <!-- Giai đoạn 2: thiệp -->
     <div class="san-khau san-khau-thiep" id="sanKhauThiep" hidden>
-      <div class="khung-thiep-nhan" id="khungThiepNhan"></div>
+      <div class="khung-thiep-nhan anh-xuat" id="khungThiepNhan"></div>
+      <!-- Nhạc gửi kèm: phát khi người nhận chạm mở phong bì -->
+      <div class="nhac-nhan" id="nhacNhan" hidden>
+        <p id="nhacNhanTen"></p>
+        <div class="bn-khung" id="nhacNhanKhung" hidden></div>
+      </div>
       <div class="hang-nut">
         <button type="button" class="nut nut-vang" id="nutTaiAnhNhan">🖼️ Tải ảnh thiệp</button>
         <button type="button" class="nut nut-vien" id="nutTaoThiepRieng">✍️ Tạo thiệp của bạn</button>
@@ -666,6 +711,23 @@
     'Kính chúc thầy cô vạn sự như ý, luôn vững tay chèo trên hành trình “trồng người” cao quý. Chúng em yêu thầy cô nhiều lắm!',
     'Cảm ơn thầy cô đã kiên nhẫn những lúc chúng em ham chơi, đã tin tưởng khi chúng em chưa tin vào chính mình. Chúc thầy cô 20/11 thật hạnh phúc!'
   ];
+
+  // Bài hát ngày thầy cô trên YouTube (đã kiểm tra: video còn hoạt động và cho phép phát nhúng)
+  const GOI_Y_NHAC = [
+    { ten: 'Bụi phấn', ca: 'Kitty Ngọc Nhi', loai: 'Thiếu nhi', id: 'KDhMw9jKX20' },
+    { ten: 'Bụi phấn', ca: 'Khánh Chi', loai: 'Thiếu nhi', id: '9zUO-Scm4z8' },
+    { ten: 'Mashup Bụi phấn – Bài học đầu tiên', ca: 'Phương Vy', loai: 'Mashup', id: '8IkJoM7Vp2E' },
+    { ten: 'Người thầy', ca: 'Trường Kha', loai: 'Trữ tình', id: 'yjwRTVM1W3s' },
+    { ten: 'Những bông hoa những bài ca', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Thiếu nhi', id: 'f8NsIRhM3jY' },
+    { ten: 'Mong ước kỷ niệm xưa', ca: 'Ngọc Anh (Thúy Nga)', loai: 'Trữ tình', id: 'vTMBbGcnQSw' },
+    { ten: 'Mong ước kỷ niệm xưa', ca: 'Mây Saigon', loai: 'Hợp ca', id: '4qNQNfxagog' },
+    { ten: 'Món quà tặng cô, Thầy cô cho em mùa xuân', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Liên khúc', id: 'ejc2zpWtTlk' },
+    { ten: 'Món quà âm nhạc tặng thầy cô 20/11', ca: 'Trường Phổ thông liên cấp FPT Bắc Giang', loai: 'Học sinh biểu diễn', id: 'YuIxlTTOJPA' }
+  ];
+  // Thông tin nhạc gửi kèm: 'hop' = Hộp nhạc tri ân, còn lại là mã video YouTube trong danh sách
+  const thongTinNhac = n => n === 'hop'
+    ? { ten: 'Hộp nhạc tri ân', ca: 'Giai điệu có sẵn trên trang' }
+    : GOI_Y_NHAC.find(b => b.id === n) || null;
 
   const $ = (s, goc = document) => goc.querySelector(s);
 
@@ -839,9 +901,12 @@
      4. THIỆP: tạo, điền nội dung, co chữ theo kích thước
      ===================================================================== */
   // Cỡ chữ của thiệp tỉ lệ với chiều rộng → thiệp trông giống nhau trên mọi màn hình và trong ảnh
+  // (chỉ xử lý khi chiều rộng đổi, và đặt ở khung hình kế tiếp để tránh cảnh báo "ResizeObserver loop")
   const theoDoiCoThiep = new ResizeObserver(ds => ds.forEach(d => {
-    const w = d.target.offsetWidth;
-    if (w) d.target.style.fontSize = (w / 22).toFixed(2) + 'px';
+    const el = d.target, w = el.offsetWidth;
+    if (!w || el._rong === w) return;
+    el._rong = w;
+    requestAnimationFrame(() => { el.style.fontSize = (w / 22).toFixed(2) + 'px'; });
   }));
 
   function taoThiep() {
@@ -860,22 +925,61 @@
     the.querySelector('[data-o=gui]').textContent = d.g || 'Học trò nhỏ';
   }
 
-  // Lấy dữ liệu từ form (khóa ngắn để link gọn: t = thầy cô, g = người gửi, m = mẫu, l = lời chúc)
+  // Danh sách nhạc gửi kèm thiệp
+  const chonNhac = $('#chonNhac');
+  chonNhac.add(new Option('Không kèm nhạc', ''));
+  chonNhac.add(new Option('🎶 Hộp nhạc tri ân (giai điệu có sẵn)', 'hop'));
+  GOI_Y_NHAC.forEach(b => chonNhac.add(new Option(`${b.ten} – ${b.ca}`, b.id)));
+
+  // Lấy dữ liệu từ form (khóa ngắn để link gọn: t = thầy cô, g = người gửi, m = mẫu, l = lời chúc, n = nhạc)
   const form = $('#formThiep');
   function layDuLieu() {
     return {
       t: chuan($('#tenThayCo').value),
       g: chuan($('#nguoiGui').value),
       m: form.querySelector('input[name=mau]:checked').value,
-      l: chuan($('#loiChuc').value)
+      l: chuan($('#loiChuc').value),
+      n: chonNhac.value
     };
+  }
+
+  // Mã QR (ảnh GIF dạng data URL) – trả về '' nếu chưa tải được thư viện
+  function taoQR(noiDung) {
+    if (typeof qrcode !== 'function') return '';
+    const q = qrcode(0, 'L');
+    q.addData(noiDung);
+    q.make();
+    return q.createDataURL(8, 2);
+  }
+
+  // Phiếu nhạc dưới thiệp: ảnh không chứa được âm thanh, nên nhạc được "gửi kèm" qua mã QR mở đúng tấm thiệp
+  function datPhieuNhac(khung, d) {
+    let phieu = khung.querySelector('.phieu-nhac');
+    const bai = thongTinNhac(d.n);
+    if (!bai) { if (phieu) phieu.remove(); return; }
+    if (!phieu) {
+      phieu = document.createElement('div');
+      phieu.className = 'phieu-nhac';
+      phieu.innerHTML = '<img class="pn-qr" alt="Mã QR mở thiệp và nghe nhạc"><div class="pn-chu">'
+        + '<span class="pn-nhan">🎵 NHẠC GỬI KÈM</span><span class="pn-bai"></span><span class="pn-ca"></span>'
+        + '<span class="pn-goi-y">📱 Quét mã QR để mở thiệp và nghe nhạc</span></div>';
+      khung.append(phieu);
+      theoDoiCoThiep.observe(phieu);
+    }
+    phieu.querySelector('.pn-bai').textContent = bai.ten;
+    phieu.querySelector('.pn-ca').textContent = bai.ca;
+    const qr = taoQR(taoLink(d)), anh = phieu.querySelector('.pn-qr');
+    anh.hidden = !qr;
+    if (qr) anh.src = qr;
   }
 
   // Xem trước ngay khi gõ
   const thiepXemTruoc = taoThiep();
   $('#xemTruoc').append(thiepXemTruoc);
   function capNhatXemTruoc() {
-    dienThiep(thiepXemTruoc, layDuLieu());
+    const d = layDuLieu();
+    dienThiep(thiepXemTruoc, d);
+    datPhieuNhac($('#xemTruoc'), d);
     $('#demKyTu').textContent = $('#loiChuc').value.length + '/320';
     $('#hopLink').hidden = true; // nội dung đã đổi → link cũ không còn đúng
   }
@@ -893,25 +997,41 @@
     capNhatXemTruoc();
   });
 
+  /* ---------- Nghe thử nhạc gửi kèm ---------- */
+  $('#nutNgheThu').addEventListener('click', () => {
+    const n = chonNhac.value;
+    if (!n) { thongBao('Bạn hãy chọn một bài nhạc để gửi kèm nhé!'); chonNhac.focus(); return; }
+    if (n === 'hop') phatHopNhac();
+    else { moBangNhac(true); phatVideo(GOI_Y_NHAC.findIndex(b => b.id === n)); }
+  });
+
   /* =====================================================================
      5. CHIA SẺ: mã hóa thiệp vào URL
-     JSON → encodeURIComponent (giữ dấu tiếng Việt) → base64 → base64url (an toàn trong URL)
+     JSON → encodeURIComponent (giữ dấu tiếng Việt) → các byte UTF-8 → base64url.
+     Cách này cho link ngắn hơn ~2 lần so với trước → mã QR trên ảnh thưa, dễ quét.
+     Link kiểu cũ (#thiep=…) vẫn mở được.
      ===================================================================== */
   function maHoa(d) {
-    return btoa(encodeURIComponent(JSON.stringify(d)))
+    return btoa(unescape(encodeURIComponent(JSON.stringify(d))))
       .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  function giaiMa(chuoi) {
+  function giaiMa(chuoi, kieuCu) {
     let s = chuoi.replace(/-/g, '+').replace(/_/g, '/');
     while (s.length % 4) s += '=';
-    return JSON.parse(decodeURIComponent(atob(s)));
+    return JSON.parse(kieuCu ? decodeURIComponent(atob(s)) : decodeURIComponent(escape(atob(s))));
+  }
+  // Link mở thiệp (bỏ trường nhạc nếu không chọn để link gọn hơn)
+  function taoLink(d) {
+    const goi = { t: d.t, g: d.g, m: d.m, l: d.l };
+    if (d.n) goi.n = d.n;
+    return location.href.split('#')[0] + '#tc=' + maHoa(goi);
   }
 
   $('#nutTaoLink').addEventListener('click', () => {
     const d = layDuLieu();
     if (!d.t) { thongBao('Bạn hãy nhập tên thầy/cô nhé!'); $('#tenThayCo').focus(); return; }
     if (!d.l) { thongBao('Bạn hãy viết lời chúc (hoặc bấm “Gợi ý lời chúc”).'); $('#loiChuc').focus(); return; }
-    const link = location.href.split('#')[0] + '#thiep=' + maHoa(d);
+    const link = taoLink(d);
     $('#oLink').value = link;
     $('#nutMoThu').href = link;
     $('#nutChiaSe').hidden = !navigator.share;
@@ -942,15 +1062,17 @@
   let thiepNhan = null;
 
   function docThiepTuURL() {
-    const kq = location.hash.match(/thiep=([A-Za-z0-9_-]+)/);
+    // #tc=… (link mới, có nhạc) hoặc #thiep=… (link kiểu cũ)
+    const kq = location.hash.match(/(thiep|tc)=([A-Za-z0-9_-]+)/);
     if (!kq) return null;
     try {
-      const d = giaiMa(kq[1]);
+      const d = giaiMa(kq[2], kq[1] === 'thiep');
       return {
         t: chuan(d.t).slice(0, 60),
         g: chuan(d.g).slice(0, 60),
         m: MAU_THIEP[d.m] ? d.m : 'codien',
-        l: chuan(d.l).slice(0, 400)
+        l: chuan(d.l).slice(0, 400),
+        n: thongTinNhac(d.n) ? d.n : '' // chỉ nhận nhạc có trong danh sách
       };
     } catch {
       thongBao('Link thiệp không hợp lệ hoặc đã bị cắt mất 😢');
@@ -974,10 +1096,12 @@
     const pb = $('#phongBi');
     if (pb.classList.contains('mo')) return;
     pb.classList.add('mo');
+    phatNhacNhan(duLieuNhan.n); // phát ngay trong lúc chạm để trình duyệt cho phép có tiếng
     // Chờ nắp mở + lá thư trồi lên rồi mới hiện thiệp
     setTimeout(() => {
-      if (!thiepNhan) { thiepNhan = taoThiep(); $('#khungThiepNhan').append(thiepNhan); }
+      if (!thiepNhan) { thiepNhan = taoThiep(); $('#khungThiepNhan').prepend(thiepNhan); }
       dienThiep(thiepNhan, duLieuNhan);
+      datPhieuNhac($('#khungThiepNhan'), duLieuNhan);
       $('#sanKhauPhongBi').hidden = true;
       $('#sanKhauThiep').hidden = false;
       // Chạy lại hiệu ứng nổi lên
@@ -987,7 +1111,21 @@
   }
   $('#phongBi').addEventListener('click', moPhongBi);
 
+  // Nhạc gửi kèm của người nhận: Hộp nhạc tri ân hoặc bài YouTube trong khung nhúng
+  function phatNhacNhan(n) {
+    const bai = thongTinNhac(n), khung = $('#nhacNhanKhung');
+    $('#nhacNhan').hidden = !bai;
+    if (!bai) return;
+    $('#nhacNhanTen').textContent = `🎵 Nhạc gửi kèm: ${bai.ten} – ${bai.ca}`;
+    if (n === 'hop') { phatHopNhac(); return; }
+    nhac.pause(); hopNhac.dung(); tatVideo();
+    khung.replaceChildren(taoKhungYouTube(bai));
+    khung.hidden = false;
+    datTrangThaiNhac(true);
+  }
+
   $('#nutTaoThiepRieng').addEventListener('click', () => {
+    tatNhac(); // không để video nhạc chạy ngầm sau lớp phong bì đã đóng
     $('#lopPhongBi').hidden = true;
     document.body.classList.remove('khoa-cuon');
     hoaPhongBi.dung();
@@ -995,7 +1133,7 @@
     $('#tao-thiep').scrollIntoView({ behavior: 'smooth' });
   });
 
-  $('#nutTaiAnhNhan').addEventListener('click', e => taiAnh(thiepNhan, duLieuNhan, e.currentTarget));
+  $('#nutTaiAnhNhan').addEventListener('click', e => taiAnh($('#khungThiepNhan'), duLieuNhan, e.currentTarget));
 
   hienPhongBi();
   addEventListener('hashchange', hienPhongBi);
@@ -1006,8 +1144,10 @@
   const laIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const trongApp = /FBAN|FBAV|Instagram|Zalo|Line\//i.test(navigator.userAgent); // trình duyệt trong ứng dụng thường chặn tải file
 
-  async function taiAnh(the, d, nut) {
+  // khung = vùng chụp ảnh: thiệp (tên thầy cô, lời chúc, người gửi) + phiếu nhạc có mã QR nếu có chọn nhạc
+  async function taiAnh(khung, d, nut) {
     if (typeof html2canvas !== 'function') { thongBao('Chưa tải được thư viện tạo ảnh, hãy kiểm tra kết nối mạng.'); return; }
+    datPhieuNhac(khung, d); // tạo lại mã QR phòng khi thư viện QR vừa tải xong
     const nhanCu = nut.textContent;
     nut.disabled = true; nut.textContent = '⏳ Đang tạo ảnh…';
     try {
@@ -1021,15 +1161,16 @@
       ]).catch(() => {});
       await document.fonts.ready;
 
-      const canvas = await html2canvas(the, {
-        scale: Math.max(2, Math.min(3, 1080 / the.offsetWidth)), // ảnh rộng khoảng 1080px
-        backgroundColor: null,
+      const canvas = await html2canvas(khung, {
+        scale: Math.max(2, Math.min(3, 1080 / khung.offsetWidth)), // ảnh rộng khoảng 1080px
+        backgroundColor: khung.querySelector('.phieu-nhac') ? '#fff8ec' : null, // nền kem nối thiệp với phiếu nhạc
         logging: false,
         useCORS: true,
         // Tắt mọi animation trong bản sao để thiệp được chụp ở trạng thái cuối
         onclone: doc => {
           const st = doc.createElement('style');
-          st.textContent = '*,*::before,*::after{animation:none!important;transition:none!important}';
+          st.textContent = '*,*::before,*::after{animation:none!important;transition:none!important}'
+            + '.thiep,.phieu-nhac{box-shadow:none!important}';
           doc.head.appendChild(st);
         }
       });
@@ -1055,7 +1196,7 @@
     }
   }
 
-  $('#nutTaiAnh').addEventListener('click', e => taiAnh(thiepXemTruoc, layDuLieu(), e.currentTarget));
+  $('#nutTaiAnh').addEventListener('click', e => taiAnh($('#xemTruoc'), layDuLieu(), e.currentTarget));
   $('#nutDongAnh').addEventListener('click', () => {
     $('#lopAnh').hidden = true;
     URL.revokeObjectURL($('#anhThiep').src);
@@ -1175,18 +1316,7 @@
   function tatNhac() { nhac.pause(); hopNhac.dung(); tatVideo(); datTrangThaiNhac(false); }
   nutNhac.addEventListener('click', () => dangCoNhac() ? tatNhac() : batNhac());
 
-  // Bài hát ngày thầy cô trên YouTube (đã kiểm tra: video còn hoạt động và cho phép phát nhúng)
-  const GOI_Y_NHAC = [
-    { ten: 'Bụi phấn', ca: 'Kitty Ngọc Nhi', loai: 'Thiếu nhi', id: 'KDhMw9jKX20' },
-    { ten: 'Bụi phấn', ca: 'Khánh Chi', loai: 'Thiếu nhi', id: '9zUO-Scm4z8' },
-    { ten: 'Mashup Bụi phấn – Bài học đầu tiên', ca: 'Phương Vy', loai: 'Mashup', id: '8IkJoM7Vp2E' },
-    { ten: 'Người thầy', ca: 'Trường Kha', loai: 'Trữ tình', id: 'yjwRTVM1W3s' },
-    { ten: 'Những bông hoa những bài ca', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Thiếu nhi', id: 'f8NsIRhM3jY' },
-    { ten: 'Mong ước kỷ niệm xưa', ca: 'Ngọc Anh (Thúy Nga)', loai: 'Trữ tình', id: 'vTMBbGcnQSw' },
-    { ten: 'Mong ước kỷ niệm xưa', ca: 'Mây Saigon', loai: 'Hợp ca', id: '4qNQNfxagog' },
-    { ten: 'Món quà tặng cô, Thầy cô cho em mùa xuân', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Liên khúc', id: 'ejc2zpWtTlk' },
-    { ten: 'Món quà âm nhạc tặng thầy cô 20/11', ca: 'Trường Phổ thông liên cấp FPT Bắc Giang', loai: 'Học sinh biểu diễn', id: 'YuIxlTTOJPA' }
-  ];
+  // Danh sách bài hát YouTube (GOI_Y_NHAC khai báo ở phần cấu hình đầu file)
   const dsNhac = $('#dsNhac');
   GOI_Y_NHAC.forEach((b, i) => {
     const li = document.createElement('li');
@@ -1201,16 +1331,20 @@
     dsNhac.append(li);
   });
 
-  // Phát bài đã chọn trong khung YouTube nhúng (chế độ không cookie)
-  function phatVideo(i) {
-    const b = GOI_Y_NHAC[i];
-    nhac.pause(); hopNhac.dung();
+  // Khung YouTube nhúng (chế độ không cookie), tự phát
+  function taoKhungYouTube(b) {
     const f = document.createElement('iframe');
     f.src = `https://www.youtube-nocookie.com/embed/${b.id}?autoplay=1&rel=0&playsinline=1`;
     f.title = `${b.ten} – ${b.ca}`;
     f.allow = 'autoplay; encrypted-media; picture-in-picture';
     f.allowFullscreen = true;
-    $('#bnKhung').replaceChildren(f);
+    return f;
+  }
+  // Phát bài đã chọn trong bảng gợi ý nhạc
+  function phatVideo(i) {
+    const b = GOI_Y_NHAC[i];
+    nhac.pause(); hopNhac.dung(); tatVideo();
+    $('#bnKhung').replaceChildren(taoKhungYouTube(b));
     $('#bnDangPhat').textContent = '🎧 Đang phát: ' + b.ten;
     $('#bnVideo').hidden = false;
     [...dsNhac.children].forEach((li, k) => li.classList.toggle('dang', k === i));
@@ -1219,6 +1353,8 @@
   function tatVideo() {
     $('#bnKhung').replaceChildren();
     $('#bnVideo').hidden = true;
+    $('#nhacNhanKhung').replaceChildren(); // khung nhạc của người nhận
+    $('#nhacNhanKhung').hidden = true;
     [...dsNhac.children].forEach(li => li.classList.remove('dang'));
   }
   $('#bnTatVideo').addEventListener('click', tatNhac);
