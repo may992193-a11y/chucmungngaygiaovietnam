@@ -383,6 +383,17 @@
     .bn-ds li div { flex: 1; min-width: 0; }
     .bn-ds a { flex: none; font-size: .8rem; font-weight: 600; color: var(--bn-nhan); text-decoration: none; white-space: nowrap; }
     .bn-ghi { margin-top: 12px; font-size: .78rem; opacity: .75; line-height: 1.45; }
+    .bn-ghi a { color: var(--bn-nhan); font-weight: 600; }
+    /* Khung phát YouTube trong bảng nhạc */
+    .bn-video { margin: 8px 0 6px; }
+    .bn-khung { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #000; }
+    .bn-khung iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .bn-dang { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; font-size: .8rem; font-weight: 600; color: var(--bn-nhan); }
+    .bn-dang button { flex: none; padding: 4px 10px; border: 0; border-radius: 999px; font-size: .78rem; color: var(--bn-chu); background: var(--bn-mo); }
+    .bn-nut-ds { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .bn-nghe { padding: 6px 12px; border: 0; border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--bn-nut-chu); background: var(--bn-nhan); }
+    .bn-ds li.dang b { color: var(--bn-nhan); }
+    .bn-ds li.dang .bn-nghe { opacity: .55; }
 
     .thong-bao {
       position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 300;
@@ -619,9 +630,13 @@
       <div><b>Hộp nhạc tri ân</b><small>Giai điệu nhẹ nhàng có sẵn – phát ngay trên trang, không cần tải gì thêm</small></div>
       <button type="button" class="bn-phat" id="nutHopNhac">▶ Phát</button>
     </div>
-    <p class="bn-nhom">Bài hát hay về thầy cô · nghe trên YouTube</p>
+    <p class="bn-nhom">Chọn bài hát ngày thầy cô · phát từ YouTube</p>
+    <div class="bn-video" id="bnVideo" hidden>
+      <div class="bn-khung" id="bnKhung"></div>
+      <div class="bn-dang"><span id="bnDangPhat"></span><button type="button" id="bnTatVideo">✕ Tắt</button></div>
+    </div>
     <ul class="bn-ds" id="dsNhac"></ul>
-    <p class="bn-ghi">📱 iPhone: nếu không nghe thấy tiếng, hãy gạt tắt chế độ im lặng ở cạnh máy.</p>
+    <p class="bn-ghi"><a href="https://www.youtube.com/results?search_query=b%C3%A0i+h%C3%A1t+20%2F11+v%E1%BB%81+th%E1%BA%A7y+c%C3%B4" target="_blank" rel="noopener">🔎 Tìm thêm bài hát 20/11 trên YouTube</a><br>📱 iPhone: nếu không nghe thấy tiếng, hãy gạt tắt chế độ im lặng ở cạnh máy.</p>
   </div>
 
   <div class="thong-bao" id="thongBao" role="status" aria-live="polite"></div>
@@ -1145,44 +1160,68 @@
     $('#nutHopNhac').textContent = hopNhac.dangPhat ? '⏸ Dừng' : '▶ Phát';
   }
   function phatHopNhac() {
-    nhac.pause();
+    nhac.pause(); tatVideo();
     if (hopNhac.batDau()) datTrangThaiNhac(true);
     else thongBao('Trình duyệt này không hỗ trợ phát nhạc 😢');
   }
   async function batNhac() {
     if (DUONG_DAN_NHAC) {
       if (!nhac.getAttribute('src')) nhac.src = DUONG_DAN_NHAC;
-      try { await nhac.play(); hopNhac.dung(); datTrangThaiNhac(true); return; }
+      try { await nhac.play(); hopNhac.dung(); tatVideo(); datTrangThaiNhac(true); return; }
       catch { thongBao('Không phát được file nhạc – chuyển sang Hộp nhạc tri ân.'); }
     }
     phatHopNhac();
   }
-  function tatNhac() { nhac.pause(); hopNhac.dung(); datTrangThaiNhac(false); }
+  function tatNhac() { nhac.pause(); hopNhac.dung(); tatVideo(); datTrangThaiNhac(false); }
   nutNhac.addEventListener('click', () => dangCoNhac() ? tatNhac() : batNhac());
 
-  // Danh sách bài hát gợi ý (mở tìm kiếm trên YouTube, không chép nhạc vào trang)
+  // Bài hát ngày thầy cô trên YouTube (đã kiểm tra: video còn hoạt động và cho phép phát nhúng)
   const GOI_Y_NHAC = [
-    { ten: 'Bụi phấn', tg: 'Vũ Hoàng', ghi: 'Ca khúc quen thuộc nhất về thầy cô và bục giảng' },
-    { ten: 'Người thầy', tg: 'Nguyễn Nhất Huy', ghi: 'Lời cảm ơn người lái đò thầm lặng' },
-    { ten: 'Những bông hoa những bài ca', tg: 'Hoàng Long', ghi: 'Vui tươi, hợp để hát tập thể' },
-    { ten: 'Mong ước kỷ niệm xưa', tg: 'Xuân Phương', ghi: 'Nhớ mái trường, bạn bè, tuổi học trò' },
-    { ten: 'Mái trường mến yêu', tg: 'Lê Quốc Thắng', ghi: 'Giai điệu trong trẻo về thầy cô, mái trường' },
-    { ten: 'Khi tóc thầy bạc', tg: '', ghi: 'Sâu lắng, xúc động' },
-    { ten: 'Em vẫn nhớ trường xưa', tg: '', ghi: 'Hoài niệm, nhẹ nhàng' },
-    { ten: 'Thầy cô cho em mùa xuân', tg: '', ghi: 'Ấm áp, phù hợp văn nghệ 20/11' }
+    { ten: 'Bụi phấn', ca: 'Kitty Ngọc Nhi', loai: 'Thiếu nhi', id: 'KDhMw9jKX20' },
+    { ten: 'Bụi phấn', ca: 'Khánh Chi', loai: 'Thiếu nhi', id: '9zUO-Scm4z8' },
+    { ten: 'Mashup Bụi phấn – Bài học đầu tiên', ca: 'Phương Vy', loai: 'Mashup', id: '8IkJoM7Vp2E' },
+    { ten: 'Người thầy', ca: 'Trường Kha', loai: 'Trữ tình', id: 'yjwRTVM1W3s' },
+    { ten: 'Những bông hoa những bài ca', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Thiếu nhi', id: 'f8NsIRhM3jY' },
+    { ten: 'Mong ước kỷ niệm xưa', ca: 'Ngọc Anh (Thúy Nga)', loai: 'Trữ tình', id: 'vTMBbGcnQSw' },
+    { ten: 'Mong ước kỷ niệm xưa', ca: 'Mây Saigon', loai: 'Hợp ca', id: '4qNQNfxagog' },
+    { ten: 'Món quà tặng cô, Thầy cô cho em mùa xuân', ca: 'Kênh Thiếu Nhi BHMEDIA', loai: 'Liên khúc', id: 'ejc2zpWtTlk' },
+    { ten: 'Món quà âm nhạc tặng thầy cô 20/11', ca: 'Trường Phổ thông liên cấp FPT Bắc Giang', loai: 'Học sinh biểu diễn', id: 'YuIxlTTOJPA' }
   ];
-  $('#dsNhac').append(...GOI_Y_NHAC.map(b => {
+  const dsNhac = $('#dsNhac');
+  GOI_Y_NHAC.forEach((b, i) => {
     const li = document.createElement('li');
-    const tim = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(`${b.ten} ${b.tg} nhạc 20/11`.replace(/\s+/g, ' '));
-    li.innerHTML = '<div><b></b><small></small></div><a target="_blank" rel="noopener">▶ YouTube</a>';
+    li.innerHTML = '<div><b></b><small></small></div><div class="bn-nut-ds"><button type="button" class="bn-nghe">▶ Nghe</button><a target="_blank" rel="noopener">YouTube ↗</a></div>';
     li.querySelector('b').textContent = b.ten;
-    li.querySelector('small').textContent = (b.tg ? b.tg + ' · ' : '') + b.ghi;
+    li.querySelector('small').textContent = b.ca + ' · ' + b.loai;
+    li.querySelector('.bn-nghe').addEventListener('click', () => phatVideo(i));
     const a = li.querySelector('a');
-    a.href = tim;
-    a.setAttribute('aria-label', `Nghe ${b.ten} trên YouTube`);
-    a.addEventListener('click', tatNhac); // tắt nhạc nền để không bị chồng tiếng
-    return li;
-  }));
+    a.href = 'https://www.youtube.com/watch?v=' + b.id;
+    a.setAttribute('aria-label', `Mở ${b.ten} – ${b.ca} trên YouTube`);
+    a.addEventListener('click', tatNhac); // tắt nhạc trên trang để không bị chồng tiếng
+    dsNhac.append(li);
+  });
+
+  // Phát bài đã chọn trong khung YouTube nhúng (chế độ không cookie)
+  function phatVideo(i) {
+    const b = GOI_Y_NHAC[i];
+    nhac.pause(); hopNhac.dung();
+    const f = document.createElement('iframe');
+    f.src = `https://www.youtube-nocookie.com/embed/${b.id}?autoplay=1&rel=0&playsinline=1`;
+    f.title = `${b.ten} – ${b.ca}`;
+    f.allow = 'autoplay; encrypted-media; picture-in-picture';
+    f.allowFullscreen = true;
+    $('#bnKhung').replaceChildren(f);
+    $('#bnDangPhat').textContent = '🎧 Đang phát: ' + b.ten;
+    $('#bnVideo').hidden = false;
+    [...dsNhac.children].forEach((li, k) => li.classList.toggle('dang', k === i));
+    datTrangThaiNhac(true);
+  }
+  function tatVideo() {
+    $('#bnKhung').replaceChildren();
+    $('#bnVideo').hidden = true;
+    [...dsNhac.children].forEach(li => li.classList.remove('dang'));
+  }
+  $('#bnTatVideo').addEventListener('click', tatNhac);
 
   // Mở/đóng bảng gợi ý nhạc
   const bangNhac = $('#bangNhac'), nutGoiY = $('#nutGoiYNhac');
